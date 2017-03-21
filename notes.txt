@@ -1,0 +1,4 @@
+write solution to file separated by spaces
+implement dfs + something extra
+text file explaining what did beyond dfs and say how long 16reallyhard took how long
+submit output of 16reallyhard

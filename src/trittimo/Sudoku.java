@@ -1,87 +1,109 @@
 package trittimo;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.PriorityQueue;
+import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Stack;
 
 public class Sudoku {
-	private static int boardSize = 0;
-	private static int partitionSize = 0;
-	
-	public static void main(String[] args){
+	public static void main(String[] args) throws IOException {
 		String filename = args[0];
-		File inputFile = new File(filename);
-		Scanner input = null;
-		int[][] board = null;
-		int temp = 0;
-    	int count = 0;
-    	
-	    try {
-			input = new Scanner(inputFile);
-			temp = input.nextInt();
-			boardSize = temp;
-			partitionSize = (int) Math.sqrt(boardSize);
-			System.out.println("Boardsize: " + temp + "x" + temp);
-			board = new int[boardSize][boardSize];
-			
-//			System.out.println("Input:");
-	    	int x = 0;
-	    	int y = 0;
-	    	while (input.hasNext()){
-	    		temp = input.nextInt();
-	    		count++;
-//	    		System.out.print(temp);
-				board[x][y] = temp;
-				y++;
-				if (y == boardSize) {
-					y = 0;
-					x++;
-//					System.out.println();
-				}
-				if (y == boardSize) {
-					break;
-				}
-	    	}
-	    	input.close();
-	    }
-	    catch (FileNotFoundException exception) {
-		    System.out.println("Input file not found: " + filename);
-	    } 
-	    catch (IOException e) {
-	    	System.out.println(e);
-		} 
-	    if (count != boardSize*boardSize) throw new RuntimeException("Incorrect number of inputs.");
-
-		SudokuBoard theBoard = new SudokuBoard(board);
-		System.out.println("Input:");
-		System.out.println(theBoard);
-		SudokuBoard solved = solveBoard(theBoard, 0);
+		Scanner scanner = new Scanner(new File(filename));
+		int size = scanner.nextInt();
+		int read;
+		int[][] board = new int[size][size];
+		for (int x = 0; x < size; x++) {
+			for (int y = 0; y < size; y++) {
+				board[x][y] = scanner.nextInt();
+			}
+		}
 		
-		System.out.println("Ouput:");
-		System.out.println(solved);
+		if (!solveSudoku(board)) {
+			System.out.println("No solution exists");
+		}
+		printBoard(board);
+	}
+	
+	public static void printBoard(int[][] board) {
+		System.out.println("=========================");
+		for (int x = 0; x < board.length; x++) {
+			String result = "";
+			for (int y = 0; y < board.length; y++) {
+				result += String.format("%3d", board[x][y]);
+			}
+			System.out.print(result.trim() + "\n");
+		}
+		System.out.println("=========================");
+	}
+	
+	public static boolean solveSudoku(int[][] board) {
+		ArrayList<Integer[]> bestOrder = getBestSolveOrder(board);
+		return solve(bestOrder, 0, board);
 	}
 	
 	
 	
-	public static SudokuBoard solveBoard(SudokuBoard board, int level) {
-		System.out.println("Level = " + level + "\n" + board);
-		if (board.isGoalState()) {
-			return board;
-		}
-		PriorityQueue<ComparablePosition> empty = board.getBestEmptyPositions();
-		
-		while (!empty.isEmpty()) {
-			ComparablePosition position = empty.poll();
-			Integer[] pos = position.position;
-			for (int attempt : board.getValidNumbers(pos[0], pos[1])) {
-				SudokuBoard result = solveBoard(new SudokuBoard(board, pos[0], pos[1], attempt), level + 1);
-				if (result != null) {
-					return result;
+	private static ArrayList<Integer[]> getBestSolveOrder(int[][] board) {
+		// Temporary solution
+		ArrayList<Integer[]> order = new ArrayList<Integer[]>();
+		for (int x = 0; x < board.length; x++) {
+			for (int y = 0; y < board.length; y++) {
+				if (board[x][y] == 0) {
+					order.add(new Integer[] {x, y});
 				}
 			}
 		}
-		return null;
+		return order;
+	}
+	
+	private static boolean legal(int iX, int iY, int attempt, int[][] board) {
+		for (int x = 0; x < board.length; x++) {
+			if (attempt == board[x][iY]) {
+				return false;
+			}
+		}
+		
+		for (int y = 0; y < board.length; y++) {
+			if (attempt == board[iX][y]) {
+				return false;
+			}
+		}
+		
+		int partition = (int) Math.sqrt(board.length);
+		
+		int xOffset = (iX / partition) * partition;
+		int yOffset = (iY / partition) * partition;
+		
+		for (int x = 0; x < partition; x++) {
+			for (int y = 0; y < partition; y++) {
+				if (attempt == board[xOffset + x][yOffset + y]) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	private static boolean solve(ArrayList<Integer[]> order, int current, int[][] board) {
+		if (order.isEmpty() || current >= order.size()) {
+			return true;
+		}
+		int x, y;
+		Integer[] pos = order.get(current);
+		x = pos[0];
+		y = pos[1];
+		
+		for (int attempt = 1; attempt <= board.length; attempt++) {
+			if (legal(x, y, attempt, board)) {
+				board[x][y] = attempt;
+				if (solve(order, current + 1, board)) {
+					return true;
+				}
+			}
+		}
+		board[x][y] = 0;
+		return false;
 	}
 }
